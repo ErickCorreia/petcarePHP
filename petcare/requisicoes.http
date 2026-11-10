@@ -1,0 +1,428 @@
+### =====================================================================
+### Trabalho 1 - API REST PetCare
+### Arquivo: requisicoes.http
+###
+### Como usar no VS Code:
+###   1. Instale a extensão "REST Client" (humao.rest-client)
+###   2. Abra este arquivo e clique em "Send Request" acima de cada bloco
+###   3. Execute na ordem: primeiro o login, depois copie o token
+###      e cole na variável @token abaixo
+###
+### O arquivo cobre TODAS as linhas da tabela de rotas do enunciado,
+### incluindo os casos de erro (400, 401, 404, 409, 422).
+### =====================================================================
+
+@base = http://localhost/petcare
+@token = COLE_O_TOKEN_AQUI
+@email = admin@petcare.com
+@senha = petcare123
+
+
+### =====================================================================
+### 1. LOGIN
+### =====================================================================
+
+### 1.1 POST /login - sucesso (200 com o token)
+# Copie o valor de "token" da resposta e cole na variável @token acima.
+POST {{base}}/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "senha": "{{senha}}"
+}
+
+### 1.2 POST /login - senha errada (401 "E-mail ou senha inválidos")
+POST {{base}}/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "senha": "senhaerrada"
+}
+
+### 1.3 POST /login - e-mail inexistente (401, mesma mensagem do 1.2)
+# A mensagem é idêntica de propósito: não revela quais e-mails existem.
+POST {{base}}/login
+Content-Type: application/json
+
+{
+  "email": "naoexiste@petcare.com",
+  "senha": "petcare123"
+}
+
+### 1.4 POST /login - campos faltando (422 com a lista de erros)
+POST {{base}}/login
+Content-Type: application/json
+
+{
+  "email": ""
+}
+
+### 1.5 POST /login - corpo que não é JSON (400)
+POST {{base}}/login
+Content-Type: application/json
+
+isto nao e um json
+
+
+### =====================================================================
+### 2. LOGOUT
+### =====================================================================
+
+### 2.1 POST /logout - sucesso (204 sem corpo)
+# Depois desta requisição, o token usado passa a responder 401.
+POST {{base}}/logout
+Authorization: Bearer {{token}}
+
+### 2.2 POST /logout - sem token (401 "Token não informado")
+POST {{base}}/logout
+
+### 2.3 POST /logout - token inválido (401 "Token inválido ou expirado")
+POST {{base}}/logout
+Authorization: Bearer token_que_nao_existe
+
+
+### =====================================================================
+### 3. TUTORES - LEITURA (público, sem token)
+### =====================================================================
+
+### 3.1 GET /tutores - sucesso (200 com total e lista)
+GET {{base}}/tutores
+
+### 3.2 GET /tutores/1 - sucesso (200)
+GET {{base}}/tutores/1
+
+### 3.3 GET /tutores/999 - não encontrado (404)
+GET {{base}}/tutores/999
+
+### 3.4 GET /tutores/1/pets - sucesso (200 com os pets do tutor)
+# O tutor 1 tem 3 pets nos dados de exemplo.
+GET {{base}}/tutores/1/pets
+
+### 3.5 GET /tutores/999/pets - tutor inexistente (404)
+GET {{base}}/tutores/999/pets
+
+
+### =====================================================================
+### 4. TUTORES - ESCRITA (exige token)
+### =====================================================================
+
+### 4.1 POST /tutores - sucesso (201 com o id criado)
+POST {{base}}/tutores
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nome": "Fernanda Ribeiro Castro",
+  "telefone": "(11) 93333-6060",
+  "email": "fernanda.castro@email.com"
+}
+
+### 4.2 POST /tutores - sem token (401 "Token não informado")
+POST {{base}}/tutores
+Content-Type: application/json
+
+{
+  "nome": "Fernanda Ribeiro Castro",
+  "telefone": "(11) 93333-6060",
+  "email": "fernanda.castro@email.com"
+}
+
+### 4.3 POST /tutores - e-mail repetido (409)
+# ana.souza@email.com já existe nos dados de exemplo.
+POST {{base}}/tutores
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nome": "Outra Ana",
+  "telefone": "(11) 90000-0000",
+  "email": "ana.souza@email.com"
+}
+
+### 4.4 POST /tutores - dados inválidos (422 com a lista de erros)
+# nome com 1 caractere, telefone vazio e e-mail sem formato válido.
+POST {{base}}/tutores
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nome": "A",
+  "telefone": "",
+  "email": "email-invalido"
+}
+
+### 4.5 PUT /tutores/1 - sucesso (200 com o tutor alterado)
+# PUT substitui o recurso: envie nome, telefone e email sempre.
+PUT {{base}}/tutores/1
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nome": "Ana Paula Souza",
+  "telefone": "(11) 98888-1011",
+  "email": "ana.souza@email.com"
+}
+
+### 4.6 PUT /tutores/1 - sem token (401)
+PUT {{base}}/tutores/1
+Content-Type: application/json
+
+{
+  "nome": "Ana Paula Souza",
+  "telefone": "(11) 98888-1011",
+  "email": "ana.souza@email.com"
+}
+
+### 4.7 PUT /tutores/999 - não encontrado (404)
+PUT {{base}}/tutores/999
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nome": "Tutor Fantasma",
+  "telefone": "(11) 90000-0000",
+  "email": "fantasma@email.com"
+}
+
+### 4.8 PUT /tutores/1 - e-mail de outro tutor (409)
+# bruno.lima@email.com pertence ao tutor 2.
+PUT {{base}}/tutores/1
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nome": "Ana Paula Souza",
+  "telefone": "(11) 98888-1011",
+  "email": "bruno.lima@email.com"
+}
+
+### 4.9 PUT /tutores/1 - dados inválidos (422)
+PUT {{base}}/tutores/1
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nome": "",
+  "telefone": "",
+  "email": "sem-arroba"
+}
+
+### 4.10 DELETE /tutores/5 - sucesso (204)
+# Com ON DELETE CASCADE, os pets do tutor 5 são apagados junto.
+# O tutor 5 (Elisa) tem 2 pets: Pipoca e Nina.
+DELETE {{base}}/tutores/5
+Authorization: Bearer {{token}}
+
+### 4.11 DELETE /tutores/5 - sem token (401)
+DELETE {{base}}/tutores/5
+
+### 4.12 DELETE /tutores/999 - não encontrado (404)
+DELETE {{base}}/tutores/999
+Authorization: Bearer {{token}}
+
+### 4.13 DELETE /tutores/5 - repetido, agora já excluído (404)
+# Rode depois do 4.10 para ver o 404.
+DELETE {{base}}/tutores/5
+Authorization: Bearer {{token}}
+
+
+### =====================================================================
+### 5. PETS - LEITURA (público, sem token)
+### =====================================================================
+
+### 5.1 GET /pets - sucesso (200 com total e lista)
+GET {{base}}/pets
+
+### 5.2 GET /pets?especie=gato - filtro por espécie (200)
+GET {{base}}/pets?especie=gato
+
+### 5.3 GET /pets?especie=cachorro - filtro por espécie (200)
+GET {{base}}/pets?especie=cachorro
+
+### 5.4 GET /pets?especie=dragao - espécie fora da lista (200 com lista vazia)
+GET {{base}}/pets?especie=dragao
+
+### 5.5 GET /pets/1 - sucesso (200, com o nome do tutor via JOIN)
+GET {{base}}/pets/1
+
+### 5.6 GET /pets/999 - não encontrado (404)
+GET {{base}}/pets/999
+
+
+### =====================================================================
+### 6. PETS - ESCRITA (exige token)
+### =====================================================================
+
+### 6.1 POST /pets - sucesso (201 com o id criado)
+POST {{base}}/pets
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nome": "Bolt",
+  "especie": "cachorro",
+  "raca": "Border Collie",
+  "data_nascimento": "2022-04-10",
+  "peso_kg": 18.5,
+  "tutor_id": 2
+}
+
+### 6.2 POST /pets - sem token (401)
+POST {{base}}/pets
+Content-Type: application/json
+
+{
+  "nome": "Bolt",
+  "especie": "cachorro",
+  "raca": "Border Collie",
+  "data_nascimento": "2022-04-10",
+  "peso_kg": 18.5,
+  "tutor_id": 2
+}
+
+### 6.3 POST /pets - raça nula, que é permitida (201)
+POST {{base}}/pets
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nome": "Caramelo",
+  "especie": "cachorro",
+  "raca": null,
+  "data_nascimento": "2021-10-01",
+  "peso_kg": 14.0,
+  "tutor_id": 3
+}
+
+### 6.4 POST /pets - dados inválidos (422 com a lista de erros)
+# nome curto, espécie fora da lista, peso acima de 200 e data futura.
+POST {{base}}/pets
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nome": "X",
+  "especie": "dinossauro",
+  "data_nascimento": "2030-01-01",
+  "peso_kg": 500,
+  "tutor_id": 1
+}
+
+### 6.5 POST /pets - tutor inexistente (422)
+POST {{base}}/pets
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nome": "Fantasma",
+  "especie": "gato",
+  "data_nascimento": "2020-01-01",
+  "peso_kg": 4.0,
+  "tutor_id": 999
+}
+
+### 6.6 POST /pets - data em formato errado (422)
+POST {{base}}/pets
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nome": "Data Errada",
+  "especie": "gato",
+  "data_nascimento": "10/04/2022",
+  "peso_kg": 4.0,
+  "tutor_id": 1
+}
+
+### 6.7 PUT /pets/1 - sucesso (200 com o pet alterado)
+PUT {{base}}/pets/1
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nome": "Thor",
+  "especie": "cachorro",
+  "raca": "Golden Retriever",
+  "data_nascimento": "2020-03-14",
+  "peso_kg": 34.0,
+  "tutor_id": 1
+}
+
+### 6.8 PUT /pets/1 - sem token (401)
+PUT {{base}}/pets/1
+Content-Type: application/json
+
+{
+  "nome": "Thor",
+  "especie": "cachorro",
+  "data_nascimento": "2020-03-14",
+  "peso_kg": 34.0,
+  "tutor_id": 1
+}
+
+### 6.9 PUT /pets/999 - não encontrado (404)
+PUT {{base}}/pets/999
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nome": "Pet Fantasma",
+  "especie": "gato",
+  "data_nascimento": "2020-01-01",
+  "peso_kg": 4.0,
+  "tutor_id": 1
+}
+
+### 6.10 PUT /pets/1 - dados inválidos (422)
+PUT {{base}}/pets/1
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nome": "T",
+  "especie": "peixe",
+  "data_nascimento": "2020-03-14",
+  "peso_kg": 0,
+  "tutor_id": 1
+}
+
+### 6.11 DELETE /pets/11 - sucesso (204)
+DELETE {{base}}/pets/11
+Authorization: Bearer {{token}}
+
+### 6.12 DELETE /pets/11 - sem token (401)
+DELETE {{base}}/pets/11
+
+### 6.13 DELETE /pets/999 - não encontrado (404)
+DELETE {{base}}/pets/999
+Authorization: Bearer {{token}}
+
+
+### =====================================================================
+### 7. ROTA INEXISTENTE
+### =====================================================================
+
+### 7.1 GET /qualquer-coisa - 404 "Rota não encontrada"
+GET {{base}}/qualquer-coisa
+
+### 7.2 GET /tutores/abc - id não numérico, cai no 404 de rota
+GET {{base}}/tutores/abc
+
+### 7.3 POST /pets/1 - método não previsto para a rota (404)
+POST {{base}}/pets/1
+Content-Type: application/json
+
+{}
+
+
+### =====================================================================
+### 8. TESTE DE EXPIRAÇÃO DO TOKEN (opcional, manual)
+### =====================================================================
+# Para conferir o 401 por expiração sem esperar 2 horas, rode no phpMyAdmin:
+#
+#   UPDATE tokens SET expira_em = '2020-01-01 00:00:00' WHERE token = 'SEU_TOKEN';
+#
+# Depois use qualquer rota protegida com esse token: deve responder
+# 401 "Token inválido ou expirado".
